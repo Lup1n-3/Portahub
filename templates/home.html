@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Panel · HubServer{% endblock %}
+
+{% block breadcrumb %}
+<span class="crumb-current"><i class="bi bi-house-door-fill"></i> Panel</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('add_server') }}" class="btn btn-sm"><i class="bi bi-plus-lg"></i> Nuevo servidor</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Servidores</h1>
+    <p class="page-subtitle">Entornos registrados y sus servicios asociados.</p>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon"><i class="bi bi-server"></i></div>
+    <div>
+      <div class="stat-value">{{ stats.servers }}</div>
+      <div class="stat-label">Servidores</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green"><i class="bi bi-diagram-3-fill"></i></div>
+    <div>
+      <div class="stat-value">{{ stats.services }}</div>
+      <div class="stat-label">Servicios totales</div>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <i class="bi bi-search"></i>
+    <input type="text" id="serverSearch" placeholder="Buscar servidor por nombre o IP...">
+  </div>
+</div>
+
+{% if servers %}
+<div class="server-grid" id="serverGrid">
+  {% for s in servers %}
+  <div class="server-card" data-search="{{ s.name|lower }} {{ s.ip|lower }}">
+    <div class="server-card-top">
+      {% if s.image %}
+        <img src="/static/images/{{ s.image }}" class="server-thumb" alt="{{ s.name }}"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="server-thumb-placeholder" style="display:none">{{ s.name[0]|upper if s.name else '?' }}</div>
+      {% else %}
+        <div class="server-thumb-placeholder">{{ s.name[0]|upper if s.name else '?' }}</div>
+      {% endif %}
+      <div class="flex-grow-1">
+        <p class="server-name">{{ s.name }}</p>
+        <div class="server-ip"><i class="bi bi-ethernet"></i>{{ s.ip }}</div>
+      </div>
+    </div>
+
+    <div>
+      <span class="badge-count"><i class="bi bi-diagram-3"></i> {{ s.services|length }} servicio{{ 's' if s.services|length != 1 else '' }}</span>
+    </div>
+
+    <div class="server-card-actions">
+      <a href="{{ url_for('server_detail', id=s.id) }}" class="btn btn-sm"><i class="bi bi-box-arrow-up-right"></i> Ver</a>
+      <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModal{{ s.id }}"><i class="bi bi-qr-code"></i></button>
+      <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editServerModal{{ s.id }}"><i class="bi bi-pencil"></i></button>
+      <a href="{{ url_for('delete_server', id=s.id) }}" class="btn btn-danger btn-sm btn-icon-only" onclick="return confirm('¿Eliminar el servidor \'{{ s.name }}\' y todos sus servicios? Esta acción no se puede deshacer.')"><i class="bi bi-trash3"></i></a>
+    </div>
+  </div>
+
+  <!-- Modal QR -->
+  <div class="modal fade" id="qrModal{{ s.id }}" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">QR · {{ s.name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="qr-modal-body">
+          <img src="/qr/{{ s.id }}" alt="QR {{ s.name }}" width="180" height="180">
+          <p class="form-hint mt-3 mb-0">Escaneá para abrir este servidor desde el móvil.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar servidor -->
+  <div class="modal fade" id="editServerModal{{ s.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <form method="post" action="{{ url_for('edit_server', id=s.id) }}" enctype="multipart/form-data" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar servidor</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Nombre</label>
+          <input type="text" name="name" value="{{ s.name }}" required>
+          <label class="form-label">IP principal</label>
+          <input type="text" name="ip" value="{{ s.ip }}" required>
+          <label class="form-label">Reemplazar imagen (opcional)</label>
+          <input type="file" name="image">
+          <p class="form-hint">Si no seleccionás una imagen nueva, se conserva la actual.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-modern"><i class="bi bi-check-lg"></i> Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+  <div class="empty-state">
+    <i class="bi bi-hdd-rack"></i>
+    <p class="mb-3">Todavía no registraste ningún servidor.</p>
+    <a href="{{ url_for('add_server') }}" class="btn"><i class="bi bi-plus-lg"></i> Agregar el primero</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const searchInput = document.getElementById('serverSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      document.querySelectorAll('#serverGrid .server-card').forEach(card => {
+        card.style.display = card.dataset.search.includes(q) ? '' : 'none';
+      });
+    });
+  }
+</script>
+{% endblock %}

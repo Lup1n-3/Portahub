@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ server.name }} · HubServer{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('home') }}"><i class="bi bi-house-door-fill"></i> Panel</a>
+<i class="bi bi-chevron-right" style="font-size:10px;"></i>
+<span class="crumb-current">{{ server.name }}</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#qrModalMain"><i class="bi bi-qr-code"></i> QR</button>
+<button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editServerModalMain"><i class="bi bi-pencil"></i> Editar servidor</button>
+<a href="{{ url_for('delete_server', id=server.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar el servidor \'{{ server.name }}\' y todos sus servicios? Esta acción no se puede deshacer.')"><i class="bi bi-trash3"></i> Eliminar</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    {% if server.image %}
+      <img src="/static/images/{{ server.image }}" class="server-thumb" style="width:56px;height:56px;" alt="{{ server.name }}"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div class="server-thumb-placeholder" style="width:56px;height:56px;font-size:20px;display:none">{{ server.name[0]|upper if server.name else '?' }}</div>
+    {% else %}
+      <div class="server-thumb-placeholder" style="width:56px;height:56px;font-size:20px;">{{ server.name[0]|upper if server.name else '?' }}</div>
+    {% endif %}
+    <div>
+      <h1 class="page-title mb-1">{{ server.name }}</h1>
+      <div class="server-ip"><i class="bi bi-ethernet"></i>{{ server.ip }}</div>
+    </div>
+  </div>
+  <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-lg"></i> Agregar servicio</button>
+</div>
+
+<div class="panel">
+  <div class="panel-body" style="padding-bottom:0;">
+    <h5 class="mb-3"><i class="bi bi-diagram-3-fill"></i> Servicios <span class="badge-count ms-1">{{ server.services|length }}</span></h5>
+  </div>
+
+  {% if server.services %}
+  <div class="table-responsive-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width:50px;"></th>
+        <th>Nombre</th>
+        <th>Dirección</th>
+        <th style="text-align:right;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in server.services %}
+      <tr>
+        <td>
+          <span class="service-icon-slot">
+            {% if s.icon %}
+              <img src="/static/service_icons/{{ s.icon }}" class="service-icon" alt="{{ s.name }}"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            {% endif %}
+            <div class="service-icon service-icon-fallback" {% if s.icon %}style="display:none"{% endif %}>{{ s.name[0]|upper if s.name else '?' }}</div>
+          </span>
+        </td>
+        <td class="service-name-cell">{{ s.name }}</td>
+        <td>
+          {% set addr = s.address %}
+          {% if 'http' in addr %}
+            <a href="{{ addr }}" target="_blank" class="address-link"><i class="bi bi-box-arrow-up-right"></i>{{ addr }}</a>
+          {% else %}
+            <a href="http://{{ addr }}" target="_blank" class="address-link"><i class="bi bi-box-arrow-up-right"></i>{{ addr }}</a>
+          {% endif %}
+        </td>
+        <td>
+          <div class="row-actions justify-content-end">
+            {% if s.info %}
+            <button class="btn btn-secondary btn-sm btn-icon-only" onclick="showInfo(`{{ s.info | escape }}`, `{{ s.name | escape }}`)" title="Ver info"><i class="bi bi-info-circle"></i></button>
+            {% endif %}
+            <button class="btn btn-secondary btn-sm btn-icon-only" data-bs-toggle="modal" data-bs-target="#editModal{{ s.sid }}" title="Editar"><i class="bi bi-pencil"></i></button>
+            <a href="{{ url_for('delete_service', server_id=server.id, sid=s.sid) }}" class="btn btn-danger btn-sm btn-icon-only" title="Eliminar" onclick="return confirm('¿Eliminar el servicio \'{{ s.name }}\'?')"><i class="bi bi-trash3"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-diagram-3"></i>
+    <p class="mb-3">Este servidor todavía no tiene servicios asociados.</p>
+    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-lg"></i> Agregar el primero</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal Agregar servicio -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('add_service', id=server.id) }}" enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Agregar servicio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Nombre</label>
+        <input type="text" name="name" placeholder="Ej: Portainer" required>
+        <label class="form-label">Dirección</label>
+        <input type="text" name="address" placeholder="Ej: 192.168.0.10:9000" required>
+        <label class="form-label">Información adicional</label>
+        <textarea name="info" rows="3" placeholder="Usuario, contraseña, notas, etc."></textarea>
+        <label class="form-label">Ícono (opcional)</label>
+        <input type="file" name="icon">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn-modern"><i class="bi bi-check-lg"></i> Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar servidor -->
+<div class="modal fade" id="editServerModalMain" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('edit_server', id=server.id) }}" enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar servidor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Nombre</label>
+        <input type="text" name="name" value="{{ server.name }}" required>
+        <label class="form-label">IP principal</label>
+        <input type="text" name="ip" value="{{ server.ip }}" required>
+        <label class="form-label">Reemplazar imagen (opcional)</label>
+        <input type="file" name="image">
+        <p class="form-hint">Si no seleccionás una imagen nueva, se conserva la actual.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn-modern"><i class="bi bi-check-lg"></i> Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modals Editar servicio -->
+{% for s in server.services %}
+<div class="modal fade" id="editModal{{ s.sid }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('edit_service', server_id=server.id, sid=s.sid) }}" enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar servicio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Nombre</label>
+        <input type="text" name="name" value="{{ s.name }}" required>
+        <label class="form-label">Dirección</label>
+        <input type="text" name="address" value="{{ s.address }}" required>
+        <label class="form-label">Información adicional</label>
+        <textarea name="info" rows="3" placeholder="Usuario, contraseña, notas, etc.">{{ s.info }}</textarea>
+        <label class="form-label">Cambiar ícono</label>
+        <input type="file" name="icon">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn-modern"><i class="bi bi-check-lg"></i> Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Modal QR -->
+<div class="modal fade" id="qrModalMain" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">QR · {{ server.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="qr-modal-body">
+        <img src="/qr/{{ server.id }}" alt="QR {{ server.name }}" width="200" height="200">
+        <p class="form-hint mt-3 mb-0">Escaneá para abrir este servidor desde el móvil.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Info -->
+<div class="modal fade" id="infoModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="infoModalTitle">Información adicional</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="infoText" class="info-pre"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function showInfo(info, name) {
+    document.getElementById("infoText").textContent = info;
+    document.getElementById("infoModalTitle").textContent = "Información · " + name;
+    const modal = new bootstrap.Modal(document.getElementById('infoModal'));
+    modal.show();
+  }
+</script>
+{% endblock %}
