@@ -1,12 +1,12 @@
-# HubServer 
+# Portahub 
 
-**HubServer** es una aplicación web para visualizar, administrar y documentar múltiples servidores locales o remotos, junto con sus servicios asociados. Diseñada para entornos técnicos como laboratorios caseros, redes de desarrollo, servidores Docker, Proxmox, Kubernetes, NAS y más.
+**Portahub** es una aplicación web para visualizar, administrar y documentar múltiples servidores locales o remotos, junto con sus servicios asociados. Diseñada para entornos técnicos como laboratorios caseros, redes de desarrollo, servidores Docker, Proxmox, Kubernetes, NAS y más.
 
 Su diseño está inspirado en herramientas como Portainer, soporte para imágenes, CRUD completo y generación de códigos QR para acceder rápidamente desde el móvil.
 
 ---
 
-## ¿Qué puedo hacer con HubServer?
+## ¿Qué puedo hacer con Portahub?
 
 - Registrar **múltiples servidores** en red con nombre, IP principal e imagen personalizada.
 - Asociar a cada servidor uno o más **servicios** (por ejemplo: interfaces web, APIs, paneles, etc.).
@@ -51,8 +51,8 @@ Su diseño está inspirado en herramientas como Portainer, soporte para imágene
 ###  1. Clona el repositorio y despliega con Docker (persistente)
 
 ```bash
-git clone https://github.com/tuusuario/HubServer.git
-cd HubServer
+git clone https://github.com/tuusuario/Portahub.git
+cd Portahub
 ```
 
 ###  2. Levanta la aplicación de forma persistente
