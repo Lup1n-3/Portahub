@@ -74,6 +74,6 @@ docker-compose up -d
   - `static/images/` → imágenes de los servidores.
   - `static/service_icons/` → íconos personalizados de los servicios.
 
- **Nada se borra** al apagar el contenedor o reiniciar el host, porque estos directorios están montados como volúmenes.
+ **Nada se borra** al apagar el contenedor o reiniciar el host, porque estos directorios están montados como volúmenes
 
 
